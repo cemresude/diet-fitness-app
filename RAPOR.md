@@ -22,12 +22,12 @@ Bu dosya, her sprint sonunda yapılan geliştirmeler, alınan kararlar, blokajla
 ### Hafta 1
 - **Tarih Aralığı:** [Giriniz]
 - **Öne Çıkanlar:**
-  - [ ] Gereksinim analizi
-  - [ ] Proje kurulumu (React Native, Expo, TS)
-  - [ ] Repo açılışı ve ilk commit
-  - [ ] Figma temel UI/UX taslakları
-- **Riskler / Blokajlar:** [Giriniz]
-- **Video Linki:** [1. Video]
+  - [🟢] Gereksinim analizi
+  - [🟢] Proje kurulumu (React Native, Expo, TS)
+  - [ 🟢] Repo açılışı ve ilk commit
+  - [ 🟢] Figma temel UI/UX taslakları
+- **Riskler / Blokajlar:** 
+- **Video Linki:** [1. Video] https://youtu.be/P6HuI3BrEO4
 - **Etiket:** v0.1.0
 
 ### Hafta 2
