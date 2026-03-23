@@ -1,0 +1,35 @@
+{
+  "name": "diet-and-fitness-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AI-powered diet and fitness planning mobile application",
+  "scripts": {
+    "backend:dev": "cd backend && npm run dev",
+    "backend:build": "cd backend && npm run build",
+    "backend:start": "cd backend && npm start",
+    "mobile:start": "cd mobile && npm start",
+    "mobile:ios": "cd mobile && npm run ios",
+    "mobile:android": "cd mobile && npm run android",
+    "install:all": "npm install && cd backend && npm install && cd ../mobile && npm install"
+  },
+  "keywords": [
+    "diet",
+    "fitness",
+    "ai",
+    "react-native",
+    "expo",
+    "nodejs"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.13.6",
+    "react": "^19.2.4",
+    "react-native": "^0.84.1"
+  },
+  "devDependencies": {
+    "@react-native-async-storage/async-storage": "^3.0.1",
+    "@types/react": "^19.2.14",
+    "@types/react-native": "^0.72.8"
+  }
+}
