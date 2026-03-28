@@ -1,7 +1,25 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
 import * as SecureStore from 'expo-secure-store';
+import Constants from 'expo-constants';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
+// Expo dev sunucusunun host bilgisini kullanarak API base URL'ini otomatik hesapla.
+const resolveApiBaseUrl = () => {
+  if (process.env.EXPO_PUBLIC_API_URL) {
+    return process.env.EXPO_PUBLIC_API_URL;
+  }
+
+  const hostUri = Constants.expoConfig?.hostUri;
+  if (hostUri) {
+    const [host, portSegment] = hostUri.split(':');
+    const port = portSegment?.split('/')[0] || '8081';
+    return `http://${host}:${port}/api`;
+  }
+
+  // Geliştirici ortamı için varsayılan.
+  return 'http://localhost:8081/api';
+};
+
+const API_URL = resolveApiBaseUrl();
 
 // Axios instance oluştur
 const api: AxiosInstance = axios.create({

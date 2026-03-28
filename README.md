@@ -1,161 +1,97 @@
-# Diet & Fitness AI Chatbot App
+# FitSync: Yapay Zeka Destekli Diyet ve Spor Takip Uygulaması 
 
-Kişiselleştirilmiş diyet ve fitness programları oluşturan yapay zeka destekli mobil uygulama.
+**Ankara Üniversitesi Mühendislik Fakültesi - Bilgisayar Mühendisliği Bölümü** 
+**Ders:** BLM4538 IOS ile Mobil Uygulama Geliştirme II 
+**Geliştirici:** Ömer Doğan (22290528)  | [GitHub](https://github.com/bycycomr) 
 
-## 🚀 Özellikler
+---
 
-- **Sohbet Tabanlı Arayüz**: Kullanıcı bilgilerini doğal bir sohbet akışında toplama
-- **Kişiselleştirilmiş Programlar**: Yaş, kilo, boy, hedef ve kısıtlamalara göre özelleştirilmiş planlar
-- **Takvimli Çıktı**: Uygulanabilir, günlük olarak planlanmış antrenman ve diyet tabloları
-- **AI Entegrasyonu**: Gemini/OpenAI API ile akıllı yanıtlar
+## 🚀 Proje Amacı
 
-## 📁 Proje Yapısı
+Bu projenin temel amacı; kullanıcıların fiziksel özelliklerini (yaş, boy, kilo vb.), kişisel hedeflerini ve mevcut sağlık kısıtlamalarını diyalog tabanlı bir sohbet arayüzü üzerinden analiz ederek tamamen kişiselleştirilmiş ve dinamik spor/diyet programları sunan yapay zeka destekli bir mobil uygulama geliştirmektir[cite: 11]. Uygulama, birbirinden bağımsız gibi görünen beslenme ve spor alışkanlıklarının tek bir yerden takip edilmesini kolaylaştırmayı hedefler[cite: 12].
 
-```
-diet-and-fitness-app/
-├── mobile/                     # React Native (Expo) Frontend
-│   ├── app/                    # Expo Router sayfaları
-│   │   ├── (tabs)/            # Tab navigasyonu
-│   │   │   ├── index.tsx      # Ana sohbet ekranı
-│   │   │   ├── profile.tsx    # Profil ekranı
-│   │   │   └── plans.tsx      # Planlar ekranı
-│   │   ├── _layout.tsx        # Root layout
-│   │   └── disclaimer.tsx     # Feragatname ekranı
-│   ├── components/            # Yeniden kullanılabilir bileşenler
-│   │   ├── chat/             # Sohbet bileşenleri
-│   │   │   ├── ChatBubble.tsx
-│   │   │   ├── ChatInput.tsx
-│   │   │   └── ChatScreen.tsx
-│   │   ├── plans/            # Plan bileşenleri
-│   │   │   ├── DietPlan.tsx
-│   │   │   ├── WorkoutPlan.tsx
-│   │   │   └── WeeklyCalendar.tsx
-│   │   └── ui/               # Genel UI bileşenleri
-│   │       ├── Button.tsx
-│   │       ├── Card.tsx
-│   │       └── Input.tsx
-│   ├── store/                 # Zustand state yönetimi
-│   │   ├── useUserStore.ts   # Kullanıcı bilgileri
-│   │   ├── useChatStore.ts   # Sohbet geçmişi
-│   │   └── usePlanStore.ts   # Oluşturulan planlar
-│   ├── services/              # API servisleri
-│   │   ├── api.ts            # Axios instance
-│   │   ├── chatService.ts    # Sohbet API'leri
-│   │   └── planService.ts    # Plan API'leri
-│   ├── types/                 # TypeScript tipleri
-│   │   ├── user.ts
-│   │   ├── chat.ts
-│   │   └── plan.ts
-│   ├── utils/                 # Yardımcı fonksiyonlar
-│   │   ├── constants.ts
-│   │   └── helpers.ts
-│   ├── assets/               # Görseller ve fontlar
-│   ├── app.json              # Expo yapılandırması
-│   ├── package.json
-│   └── tsconfig.json
-│
-├── backend/                    # Node.js (Express) Backend
-│   ├── src/
-│   │   ├── controllers/      # Route controller'ları
-│   │   │   ├── chatController.ts
-│   │   │   ├── userController.ts
-│   │   │   └── planController.ts
-│   │   ├── routes/           # API route tanımları
-│   │   │   ├── index.ts
-│   │   │   ├── chatRoutes.ts
-│   │   │   ├── userRoutes.ts
-│   │   │   └── planRoutes.ts
-│   │   ├── services/         # İş mantığı servisleri
-│   │   │   ├── aiService.ts  # Gemini/OpenAI entegrasyonu
-│   │   │   ├── chatService.ts
-│   │   │   └── planGenerator.ts
-│   │   ├── middleware/       # Express middleware'leri
-│   │   │   ├── auth.ts
-│   │   │   ├── errorHandler.ts
-│   │   │   └── validator.ts
-│   │   ├── models/           # Veri modelleri
-│   │   │   ├── User.ts
-│   │   │   ├── ChatSession.ts
-│   │   │   └── Plan.ts
-│   │   ├── config/           # Yapılandırma dosyaları
-│   │   │   ├── firebase.ts   # Firebase bağlantısı
-│   │   │   ├── ai.ts         # AI API yapılandırması
-│   │   │   └── index.ts
-│   │   ├── utils/            # Yardımcı fonksiyonlar
-│   │   │   ├── prompts.ts    # AI prompt şablonları
-│   │   │   └── validators.ts
-│   │   └── app.ts            # Express app başlangıcı
-│   ├── package.json
-│   ├── tsconfig.json
-│   └── .env.example
-│
-├── docs/                       # Dokümantasyon
-│   ├── DISCLAIMER.md          # Yasal feragatname
-│   ├── API.md                 # API dokümantasyonu
-│   └── SETUP.md               # Kurulum rehberi
-│
-└── README.md
-```
+## 🎯 Kapsam
+
+### Kapsam Dahilinde Olanlar (In-Scope) [cite: 14]
+- **Kimlik Doğrulaması:** Güvenli kayıt ve giriş işlemleri[cite: 15].
+- **Akıllı Sohbet Arayüzü:** Doğal diyalog akışı içinde veri toplayan asistan[cite: 16].
+- **İstem (Prompt) Yönetimi:** Toplanan verileri yapılandırıp LLM'e iletme[cite: 17].
+- **Dinamik Program Üretimi:** Yapay zeka çıktısını (JSON) günlük takvim ve öğün kartları gibi UI bileşenlerine dönüştürme[cite: 18].
+- **İlerleme Takibi:** Tamamlanan görevleri veritabanına kaydederek süreci görselleştirme[cite: 19].
+
+### Kapsam Dışı Olanlar (Out-of-Scope) [cite: 20]
+- Gerçek zamanlı doktor veya diyetisyen görüşmeleri[cite: 21].
+- Giyilebilir cihaz (Akıllı saat, Apple Health vb.) anlık sağlık verisi entegrasyonu[cite: 22].
+- Uygulama içi e-ticaret (supplement/ekipman satışı).
 
 ## 🛠️ Teknoloji Yığını
 
+Ayrı bir backend sunucusu kurmak yerine, sunucusuz (serverless) mimari tercih edilmiştir.
+
 | Katman | Teknoloji | Kullanım Amacı |
 |--------|-----------|----------------|
-| Frontend | React Native (Expo) | Hızlı mobil geliştirme |
-| State Yönetimi | Zustand | Global state yönetimi |
-| UI / Chat | React Native Gifted Chat | Sohbet arayüzü |
-| Backend | Node.js (Express) | API ve iş mantığı |
-| Veritabanı | Firebase Firestore | Veri depolama |
-| Yapay Zeka | Gemini / OpenAI API | AI destekli yanıtlar |
+| **Frontend** | React Native & Expo | Çapraz platform iOS/Android mobil geliştirme [cite: 26] |
+| **Navigasyon** | React Navigation | Ekranlar arası yönlendirme yönetimi [cite: 27] |
+| **Sohbet UI** | React Native Gifted Chat | Özelleştirilebilir sohbet arayüzü bileşeni [cite: 28] |
+| **State Yönetimi** | Zustand | Hafif ve hızlı global durum yönetimi [cite: 29] |
+| **Veritabanı & Auth**| Firebase (Firestore & Auth) | Sunucusuz veri depolama ve kimlik doğrulama  |
+| **API & Güvenlik** | Expo API Routes / Cloud Functions| API güvenliği ve aracı backend işlemleri  |
+| **Yapay Zeka** | Gemini API (veya OpenAI API) | Doğal dil analizi ve yapılandırılmış JSON üretimi [cite: 35] |
 
-## 📱 Kullanıcı Akışı
+## 📁 Proje Yapısı
 
-1. Kullanıcı uygulamayı açar
-2. Feragatname ekranını kabul eder
-3. Sohbet arayüzünde bot ile etkileşime girer:
-   - Yaş bilgisi
-   - Kilo bilgisi
-   - Boy bilgisi
-   - Hedef (kilo alma/verme/kas yapma)
-   - Alerji ve sakatlık durumları
-4. AI, toplanan bilgilere göre kişiselleştirilmiş plan oluşturur
-5. Takvimli diyet ve antrenman programı sunulur
+```text
+.
+├── app/                        # Expo Router sayfaları ve API route'ları
+│   ├── (tabs)/                 # Alt sekme navigasyonu (sohbet, planlar, profil)
+│   ├── api/                    # Serverless endpoint iskeletleri
+│   │   ├── chat+api.ts
+│   │   └── plan+api.ts
+│   ├── _layout.tsx             # Root layout
+│   ├── disclaimer.tsx          # Feragatname ekranı
+│   ├── index.tsx               # İlk yönlendirme
+│   ├── login.tsx               # Giriş ekranı
+│   └── register.tsx            # Kayıt ekranı
+├── components/                 # Yeniden kullanılabilir UI bileşenleri (chat / plans / ui)
+├── services/                   # API erişimi, auth stub, plan servisleri
+├── store/                      # Zustand state yönetimi (user/chat/plan)
+├── types/                      # Tip tanımları
+├── utils/                      # Sabitler ve yardımcılar
+├── assets/                     # Uygulama varlıkları
+├── RAPOR.md                    # Haftalık rapor şablonları
+├── app.json                    # Expo yapılandırması
+├── package.json                # Uygulama bağımlılıkları ve scriptler
+├── tsconfig.json               # TypeScript ayarları
+├── README.md                   # Proje dokümantasyonu
+└── legacy/                     # Eski backend/frontend ve önceki root package.json
+	├── backend/
+	├── frontend/
+	├── docs/
+	├── my-app/
+	├── package.root.json
+	└── package-lock.root.json
+```
+📅 Proje Yönetimi ve Haftalık Video Raporlama
 
-## ⚠️ Önemli Uyarı
+Proje geliştirme süreci haftalık olarak belgelenecek ve detaylı teknik açıklamalar RAPOR.md dosyasına eklenecektir. Her hafta yapılan geliştirmeler, ekran tasarımları ve yapay zeka entegrasyonları 3-5 dakikalık videolarla anlatılacaktır.
+
+⚠️ Önemli Uyarı
 
 Bu uygulama yalnızca bilgilendirme amaçlıdır ve profesyonel tıbbi veya beslenme danışmanlığı yerine geçmez. Herhangi bir diyet veya egzersiz programına başlamadan önce mutlaka bir sağlık uzmanına danışın.
 
-## 🚀 Başlangıç
+🚀 Başlangıç
 
-### Gereksinimler
+Gereksinimler
 
 - Node.js 18+
 - npm veya yarn
 - Expo CLI
-- Firebase hesabı
-- Gemini veya OpenAI API anahtarı
 
-### Kurulum
+Kurulum
 
 ```bash
-# Repository'yi klonlayın
-git clone <repo-url>
-cd diet-and-fitness-app
-
-# Backend kurulumu
-cd backend
 npm install
-cp .env.example .env
-# .env dosyasını düzenleyin
-
-# Frontend kurulumu
-cd ../mobile
-npm install
-
-# Uygulamayı başlatın
 npm start
 ```
 
-## 📄 Lisans
-
-MIT License
+> Eski Node backend/front-end kodu legacy/ dizininde arşivlendi. Gerekirse `cd legacy/backend && npm install && npm run dev` komutu ile ayrı sunucu olarak ayağa kaldırabilirsiniz.

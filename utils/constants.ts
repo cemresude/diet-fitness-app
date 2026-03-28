@@ -78,20 +78,20 @@ export const COMMON_INJURIES = [
 // API Endpoints
 export const ENDPOINTS = {
   CHAT: {
-    START: '/chat/start',
-    MESSAGE: '/chat/message',
-    HISTORY: '/chat/history',
-    END: '/chat/end',
+    START: '/chat',
+    MESSAGE: '/chat',
+    HISTORY: '/chat',
+    END: '/chat',
   },
   USER: {
-    REGISTER: '/users/register',
-    LOGIN: '/users/login',
-    PROFILE: '/users/profile',
+    REGISTER: '/auth/register',
+    LOGIN: '/auth/login',
+    PROFILE: '/auth/profile',
   },
   PLAN: {
-    GENERATE: '/plans/generate',
-    GET: '/plans',
-    HISTORY: '/plans/history',
-    EXPORT: '/plans/export',
+    GENERATE: '/plan',
+    GET: '/plan',
+    HISTORY: '/plan/history',
+    EXPORT: '/plan/export',
   },
 };
