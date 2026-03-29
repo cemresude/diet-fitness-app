@@ -1,5 +1,5 @@
 import { geminiClient, openaiClient, getAIProvider } from '../config/ai';
-import { SYSTEM_PROMPT, PLAN_GENERATION_PROMPT } from '../utils/prompts';
+import { SYSTEM_PROMPT, PLAN_GENERATION_PROMPT, USER_DATA_EXTRACTION_PROMPT } from '../utils/prompts';
 import { DietPlan, WorkoutPlan } from '../models/Plan';
 
 interface UserProfile {
@@ -16,9 +16,66 @@ interface GeneratedPlan {
   workoutPlan: WorkoutPlan;
 }
 
+const cleanModelOutput = (text: string): string => {
+  return text
+    .replace(/```json/gi, '')
+    .replace(/```/g, '')
+    .trim();
+};
+
+const extractFirstJsonObject = (text: string): string => {
+  const cleaned = cleanModelOutput(text);
+  const start = cleaned.indexOf('{');
+  const end = cleaned.lastIndexOf('}');
+
+  if (start === -1 || end === -1 || end <= start) {
+    throw new Error('Model output does not contain valid JSON object boundaries');
+  }
+
+  return cleaned.slice(start, end + 1);
+};
+
+function assertGeneratedPlanShape(plan: any): asserts plan is GeneratedPlan {
+  if (!plan || typeof plan !== 'object') {
+    throw new Error('Plan JSON is not an object');
+  }
+
+  if (!plan.dietPlan || typeof plan.dietPlan !== 'object') {
+    throw new Error('dietPlan is missing');
+  }
+
+  if (!plan.workoutPlan || typeof plan.workoutPlan !== 'object') {
+    throw new Error('workoutPlan is missing');
+  }
+
+  if (!Array.isArray(plan.dietPlan.weeklyMenu)) {
+    throw new Error('dietPlan.weeklyMenu must be an array');
+  }
+
+  if (!Array.isArray(plan.workoutPlan.weeklySchedule)) {
+    throw new Error('workoutPlan.weeklySchedule must be an array');
+  }
+}
+
+const getMissingFields = (userProfile: UserProfile): string[] => {
+  const missing: string[] = [];
+  if (!userProfile.age) missing.push('age');
+  if (!userProfile.height) missing.push('height');
+  if (!userProfile.weight) missing.push('weight');
+  if (!userProfile.goal) missing.push('goal');
+  if (!Array.isArray(userProfile.allergies)) missing.push('allergies');
+  if (!Array.isArray(userProfile.injuries)) missing.push('injuries');
+  return missing;
+};
+
 export const aiService = {
   // Plan oluştur
   generatePlan: async (userProfile: UserProfile): Promise<GeneratedPlan> => {
+    const missingFields = getMissingFields(userProfile);
+    if (missingFields.length > 0) {
+      throw new Error(`Eksik kullanıcı bilgileri: ${missingFields.join(', ')}`);
+    }
+
     const provider = getAIProvider();
     const prompt = PLAN_GENERATION_PROMPT(userProfile);
 
@@ -33,13 +90,11 @@ export const aiService = {
         throw new Error('AI provider not available');
       }
 
-      // JSON'u parse et
-      const jsonMatch = response.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error('Invalid AI response format');
-      }
+      // JSON'u parse et (markdown code fence durumunu da temizle)
+      const jsonString = extractFirstJsonObject(response);
+      const plan = JSON.parse(jsonString);
+      assertGeneratedPlanShape(plan);
 
-      const plan = JSON.parse(jsonMatch[0]) as GeneratedPlan;
       return plan;
     } catch (error) {
       console.error('AI plan generation error:', error);
@@ -63,6 +118,54 @@ export const aiService = {
     } catch (error) {
       console.error('AI chat response error:', error);
       throw new Error('Yanıt oluşturulurken bir hata oluştu');
+    }
+  },
+
+  // Mesajdan alerji/sakatlık anahtarlarını JSON olarak ayıkla
+  extractUserHealthData: async (
+    message: string
+  ): Promise<{ allergies: string[]; injuries: string[] }> => {
+    const provider = getAIProvider();
+    const prompt = USER_DATA_EXTRACTION_PROMPT(message);
+
+    try {
+      const raw =
+        provider === 'gemini' && geminiClient
+          ? await generateWithGemini(prompt)
+          : provider === 'openai' && openaiClient
+          ? await generateWithOpenAI(prompt)
+          : (() => {
+              throw new Error('AI provider not available');
+            })();
+
+      const jsonString = (() => {
+        try {
+          return extractFirstJsonObject(raw);
+        } catch {
+          return null;
+        }
+      })();
+
+      if (!jsonString) {
+        return { allergies: [], injuries: [] };
+      }
+
+      const parsed = JSON.parse(jsonString) as {
+        allergies?: string[];
+        injuries?: string[];
+      };
+
+      return {
+        allergies: Array.isArray(parsed.allergies)
+          ? parsed.allergies.map((x) => String(x).trim().toLowerCase()).filter(Boolean)
+          : [],
+        injuries: Array.isArray(parsed.injuries)
+          ? parsed.injuries.map((x) => String(x).trim().toLowerCase()).filter(Boolean)
+          : [],
+      };
+    } catch (error) {
+      console.error('AI extraction error:', error);
+      return { allergies: [], injuries: [] };
     }
   },
 };

@@ -3,6 +3,7 @@ import { collections } from '../config/firebase';
 import { ChatSession, ChatStep, CollectedData, ChatMessage } from '../models/ChatSession';
 import { validateAge, validateWeight, validateHeight, validateGoal, parseList } from '../utils/validators';
 import { CONVERSATION_PROMPTS } from '../utils/prompts';
+import { stripEmojis } from '../utils/textSanitizer';
 
 export const chatService = {
   // Yeni oturum başlat
@@ -21,7 +22,7 @@ export const chatService = {
     const welcomeMessage: ChatMessage = {
       id: uuidv4(),
       role: 'assistant',
-      content: CONVERSATION_PROMPTS.greeting,
+      content: stripEmojis(CONVERSATION_PROMPTS.greeting),
       timestamp: new Date(),
     };
     session.messages.push(welcomeMessage);
@@ -66,10 +67,12 @@ export const chatService = {
     }
 
     // Kullanıcı mesajını ekle
+    const sanitizedUserMessage = stripEmojis(userMessage);
+
     const userMsg: ChatMessage = {
       id: uuidv4(),
       role: 'user',
-      content: userMessage,
+      content: sanitizedUserMessage,
       timestamp: new Date(),
     };
     session.messages.push(userMsg);
@@ -81,7 +84,7 @@ export const chatService = {
     // Adıma göre işle
     switch (session.currentStep) {
       case 'age': {
-        const result = validateAge(userMessage);
+        const result = validateAge(sanitizedUserMessage);
         if (result.isValid) {
           session.collectedData.age = result.value;
           nextStep = 'weight';
@@ -93,7 +96,7 @@ export const chatService = {
       }
 
       case 'weight': {
-        const result = validateWeight(userMessage);
+        const result = validateWeight(sanitizedUserMessage);
         if (result.isValid) {
           session.collectedData.weight = result.value;
           nextStep = 'height';
@@ -105,7 +108,7 @@ export const chatService = {
       }
 
       case 'height': {
-        const result = validateHeight(userMessage);
+        const result = validateHeight(sanitizedUserMessage);
         if (result.isValid) {
           session.collectedData.height = result.value;
           nextStep = 'goal';
@@ -117,7 +120,7 @@ export const chatService = {
       }
 
       case 'goal': {
-        const result = validateGoal(userMessage);
+        const result = validateGoal(sanitizedUserMessage);
         if (result.isValid) {
           session.collectedData.goal = result.value;
           nextStep = 'allergies';
@@ -129,21 +132,21 @@ export const chatService = {
       }
 
       case 'allergies': {
-        session.collectedData.allergies = parseList(userMessage);
+        session.collectedData.allergies = parseList(sanitizedUserMessage);
         nextStep = 'injuries';
         response = CONVERSATION_PROMPTS.transitions.toInjuries();
         break;
       }
 
       case 'injuries': {
-        session.collectedData.injuries = parseList(userMessage);
+        session.collectedData.injuries = parseList(sanitizedUserMessage);
         nextStep = 'confirmation';
         response = CONVERSATION_PROMPTS.confirmation(session.collectedData);
         break;
       }
 
       case 'confirmation': {
-        const lowerMessage = userMessage.toLowerCase();
+        const lowerMessage = sanitizedUserMessage.toLowerCase();
         if (lowerMessage.includes('evet') || lowerMessage.includes('onay') || lowerMessage.includes('tamam')) {
           nextStep = 'generating';
           response = CONVERSATION_PROMPTS.generating;
@@ -165,7 +168,7 @@ export const chatService = {
     const botMsg: ChatMessage = {
       id: uuidv4(),
       role: 'assistant',
-      content: response,
+      content: stripEmojis(response),
       timestamp: new Date(),
     };
     session.messages.push(botMsg);

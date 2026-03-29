@@ -10,13 +10,13 @@ const resolveApiBaseUrl = () => {
 
   const hostUri = Constants.expoConfig?.hostUri;
   if (hostUri) {
-    const [host, portSegment] = hostUri.split(':');
-    const port = portSegment?.split('/')[0] || '8081';
-    return `http://${host}:${port}/api`;
+    const [host] = hostUri.split(':');
+    // Backend varsayılanı 3000 + /api/v1
+    return `http://${host}:3000/api/v1`;
   }
 
   // Geliştirici ortamı için varsayılan.
-  return 'http://localhost:8081/api';
+  return 'http://localhost:3000/api/v1';
 };
 
 const API_URL = resolveApiBaseUrl();

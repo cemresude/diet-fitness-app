@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -16,9 +16,13 @@ import { WeekDay } from '../../types/plan';
 type TabType = 'diet' | 'workout';
 
 export default function PlansTab() {
-  const { currentPlan, planHistory, isGenerating } = usePlanStore();
+  const { currentPlan, planHistory, isGenerating, loadUserPlans } = usePlanStore();
   const [activeTab, setActiveTab] = useState<TabType>('diet');
   const [selectedDay, setSelectedDay] = useState<WeekDay>('monday');
+
+  useEffect(() => {
+    loadUserPlans();
+  }, [loadUserPlans]);
 
   // Plan yoksa boş durum göster
   if (!currentPlan && !isGenerating) {

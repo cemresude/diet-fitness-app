@@ -4,6 +4,18 @@ import { UserGoal } from '../types/user';
 import { GOAL_KEYWORDS } from './constants';
 
 /**
+ * Emojileri ve geniş pictographic karakterleri metinden kaldırır.
+ */
+export const stripEmojis = (text: string): string => {
+  if (!text) return '';
+  return text
+    .replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, '')
+    .replace(/[\uFE0F\u200D]/g, '') // variation selector + zero-width joiner
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+};
+
+/**
  * Kullanıcı girişinden yaş değerini çıkarır
  */
 export const extractAge = (input: string): number | null => {
@@ -71,29 +83,104 @@ export const extractGoal = (input: string): UserGoal | null => {
  */
 export const extractAllergies = (input: string): string[] => {
   const lowercaseInput = input.toLowerCase();
-  
+
   if (
     lowercaseInput.includes('yok') ||
     lowercaseInput.includes('hayır') ||
-    lowercaseInput === '-'
+    lowercaseInput.trim() === '-'
   ) {
     return [];
   }
-  
-  // Virgül veya "ve" ile ayrılmış listeyi parse et
-  const items = input
-    .split(/[,\s]+(?:ve\s+)?/)
-    .map((item) => item.trim())
-    .filter((item) => item.length > 0);
-  
-  return items;
+
+  const allergyDictionary: Record<string, string[]> = {
+    egg: ['yumurta', 'egg'],
+    peanut: ['fıstık', 'yer fıstığı', 'peanut'],
+    milk: ['süt', 'milk'],
+    lactose: ['laktoz', 'lactose'],
+    gluten: ['gluten'],
+    soy: ['soya', 'soy'],
+    fish: ['balık', 'fish'],
+    shellfish: ['kabuklu deniz ürünü', 'karides', 'midye', 'shellfish'],
+    tree_nuts: ['badem', 'ceviz', 'fındık', 'tree nuts', 'nuts'],
+    sesame: ['susam', 'sesame'],
+  };
+
+  const found = new Set<string>();
+  Object.entries(allergyDictionary).forEach(([key, variants]) => {
+    if (variants.some((variant) => lowercaseInput.includes(variant))) {
+      found.add(key);
+    }
+  });
+
+  // Sözlükte bulunamazsa, serbest girdiden sadece çekirdek kelimeleri ayıkla
+  if (found.size === 0) {
+    const stopwords = new Set([
+      'i', 'have', 'an', 'a', 'to', 'allergy', 'allergic', 'am', 'im', 've', 'veya', 'ile', 'karşı',
+      'alerjim', 'alerji', 'var', 'benim', 'yemem', 'yiyemem', 'için', 'bir', 'the', 'to', 'of', 'and',
+    ]);
+
+    const tokens = lowercaseInput
+      .replace(/[^\p{L}\p{N}\s,]+/gu, ' ')
+      .split(/[\s,]+/)
+      .map((t) => t.trim())
+      .filter((t) => t.length > 2 && !stopwords.has(t));
+
+    return Array.from(new Set(tokens));
+  }
+
+  return Array.from(found);
 };
 
 /**
  * Kullanıcı girişinden sakatlık listesini çıkarır
  */
 export const extractInjuries = (input: string): string[] => {
-  return extractAllergies(input); // Aynı mantık
+  const lowercaseInput = input.toLowerCase();
+
+  if (
+    lowercaseInput.includes('yok') ||
+    lowercaseInput.includes('hayır') ||
+    lowercaseInput.trim() === '-'
+  ) {
+    return [];
+  }
+
+  const injuryDictionary: Record<string, string[]> = {
+    knee: ['diz', 'knee'],
+    shoulder: ['omuz', 'shoulder'],
+    back: ['bel', 'sırt', 'back'],
+    herniated_disc: ['fıtık', 'herniated disc', 'disk'],
+    neck: ['boyun', 'neck'],
+    ankle: ['bilek', 'ankle'],
+    wrist: ['el bileği', 'wrist'],
+    hypertension: ['tansiyon', 'hypertension'],
+    diabetes: ['diyabet', 'diabetes'],
+    heart_condition: ['kalp', 'heart'],
+  };
+
+  const found = new Set<string>();
+  Object.entries(injuryDictionary).forEach(([key, variants]) => {
+    if (variants.some((variant) => lowercaseInput.includes(variant))) {
+      found.add(key);
+    }
+  });
+
+  if (found.size === 0) {
+    const stopwords = new Set([
+      'i', 'have', 'an', 'a', 'injury', 'injuries', 'pain', 'am', 'im', 've', 'veya', 'ile', 'karşı',
+      'sakatlık', 'sakatlığım', 'var', 'benim', 'the', 'to', 'of', 'and',
+    ]);
+
+    const tokens = lowercaseInput
+      .replace(/[^\p{L}\p{N}\s,]+/gu, ' ')
+      .split(/[\s,]+/)
+      .map((t) => t.trim())
+      .filter((t) => t.length > 2 && !stopwords.has(t));
+
+    return Array.from(new Set(tokens));
+  }
+
+  return Array.from(found);
 };
 
 /**

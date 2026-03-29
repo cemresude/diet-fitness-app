@@ -11,7 +11,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useUserStore, useChatStore, usePlanStore } from '../../store';
-import { Card, Button } from '../../components/ui';
+import { Card } from '../../components/ui';
 import { COLORS } from '../../utils/constants';
 import { calculateBMI, getBMICategory } from '../../utils/helpers';
 
@@ -19,7 +19,7 @@ export default function ProfileTab() {
   const router = useRouter();
   const { user, logout } = useUserStore();
   const { collectedData, resetChat } = useChatStore();
-  const { planHistory, clearCurrentPlan } = usePlanStore();
+  const { planHistory, clearCurrentPlan, resetPlans } = usePlanStore();
 
   // Profil verilerini al (ya store'dan ya da toplanan verilerden)
   const profileData = {
@@ -60,7 +60,15 @@ export default function ProfileTab() {
       {
         text: 'Çıkış Yap',
         style: 'destructive',
-        onPress: () => logout(),
+        onPress: async () => {
+          // Tüm oturum ve ekran state'ini temizle
+          resetChat();
+          resetPlans();
+          await logout();
+
+          // Back stack'e dönülmesin diye replace kullan
+          router.replace('/login' as any);
+        },
       },
     ]);
   };

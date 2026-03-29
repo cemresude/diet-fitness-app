@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect } from 'react';
 import { View, FlatList, StyleSheet, ActivityIndicator, Text, Alert } from 'react-native';
-import { useChatStore, usePlanStore } from '../../store';
-import { planService } from '../../services';
+import { useChatStore, usePlanStore, useUserStore } from '../../store';
+import { planService, userService } from '../../services';
 import { ChatMessage, ChatStep } from '../../types/chat';
+import { UserGoal } from '../../types/user';
 import { COLORS, CHAT_QUESTIONS } from '../../utils/constants';
 import {
   extractAge,
@@ -11,6 +12,7 @@ import {
   extractGoal,
   extractAllergies,
   extractInjuries,
+  stripEmojis,
 } from '../../utils/helpers';
 import ChatBubble from './ChatBubble';
 import ChatInput from './ChatInput';
@@ -29,7 +31,8 @@ export const ChatScreen: React.FC = () => {
     initializeChat,
   } = useChatStore();
 
-  const { setCurrentPlan, setIsGenerating, setError } = usePlanStore();
+  const { setCurrentPlan, setIsGenerating, setError, loadUserPlans } = usePlanStore();
+  const { updateProfile: updateUserProfile, user } = useUserStore();
 
   // Sohbeti başlat
   useEffect(() => {
@@ -44,12 +47,34 @@ export const ChatScreen: React.FC = () => {
       let nextStep: ChatStep = step;
       let extractedValue: any = null;
       let errorMessage: string | null = null;
+      let updates: Record<string, any> = {};
+
+      const syncProfile = async (updates: {
+        age?: number;
+        weight?: number;
+        height?: number;
+        goal?: UserGoal;
+        allergies?: string[];
+        injuries?: string[];
+      }) => {
+        // Anlık UI güncellemesi
+        updateUserProfile(updates as any);
+
+        // Kalıcı kayıt (lokal db/service)
+        try {
+          await userService.updateProfile(updates as any);
+        } catch (e) {
+          console.warn('Profile sync failed:', e);
+        }
+      };
 
       switch (step) {
         case 'age':
           extractedValue = extractAge(text);
-          if (extractedValue) {
-            updateCollectedData({ age: extractedValue });
+          if (extractedValue !== null) {
+            updates = { age: extractedValue };
+            updateCollectedData(updates);
+            await syncProfile({ age: extractedValue });
             nextStep = 'weight';
           } else {
             errorMessage = 'Geçerli bir yaş girmeniz gerekiyor (örn: 25)';
@@ -58,8 +83,10 @@ export const ChatScreen: React.FC = () => {
 
         case 'weight':
           extractedValue = extractWeight(text);
-          if (extractedValue) {
-            updateCollectedData({ weight: extractedValue });
+          if (extractedValue !== null) {
+            updates = { weight: extractedValue };
+            updateCollectedData(updates);
+            await syncProfile({ weight: extractedValue });
             nextStep = 'height';
           } else {
             errorMessage = 'Geçerli bir kilo girmeniz gerekiyor (örn: 70 kg)';
@@ -68,8 +95,10 @@ export const ChatScreen: React.FC = () => {
 
         case 'height':
           extractedValue = extractHeight(text);
-          if (extractedValue) {
-            updateCollectedData({ height: extractedValue });
+          if (extractedValue !== null) {
+            updates = { height: extractedValue };
+            updateCollectedData(updates);
+            await syncProfile({ height: extractedValue });
             nextStep = 'goal';
           } else {
             errorMessage = 'Geçerli bir boy girmeniz gerekiyor (örn: 175 cm)';
@@ -79,7 +108,9 @@ export const ChatScreen: React.FC = () => {
         case 'goal':
           extractedValue = extractGoal(text);
           if (extractedValue) {
-            updateCollectedData({ goal: extractedValue });
+            updates = { goal: extractedValue };
+            updateCollectedData(updates);
+            await syncProfile({ goal: extractedValue as UserGoal });
             nextStep = 'allergies';
           } else {
             errorMessage =
@@ -89,13 +120,17 @@ export const ChatScreen: React.FC = () => {
 
         case 'allergies':
           extractedValue = extractAllergies(text);
-          updateCollectedData({ allergies: extractedValue });
+          updates = { allergies: extractedValue };
+          updateCollectedData(updates);
+          await syncProfile({ allergies: extractedValue });
           nextStep = 'injuries';
           break;
 
         case 'injuries':
           extractedValue = extractInjuries(text);
-          updateCollectedData({ injuries: extractedValue });
+          updates = { injuries: extractedValue };
+          updateCollectedData(updates);
+          await syncProfile({ injuries: extractedValue });
           nextStep = 'confirmation';
           break;
 
@@ -108,21 +143,41 @@ export const ChatScreen: React.FC = () => {
           break;
       }
 
-      return { nextStep, errorMessage };
+      return { nextStep, errorMessage, updates };
     },
     [updateCollectedData]
   );
 
   // Bot yanıtı oluştur
   const getBotResponse = useCallback(
-    (step: ChatStep): string => {
+    (step: ChatStep, dataSnapshot: typeof collectedData): string => {
+      const displayNumber = (value: unknown): string => {
+        if (typeof value === 'number' && Number.isFinite(value)) {
+          return String(value);
+        }
+
+        if (typeof value === 'string') {
+          const normalized = value.trim();
+          if (!normalized || normalized.toLowerCase() === 'undefined') {
+            return 'bilinmiyor';
+          }
+
+          const asNumber = Number(normalized.replace(',', '.'));
+          if (Number.isFinite(asNumber)) {
+            return String(asNumber);
+          }
+        }
+
+        return 'bilinmiyor';
+      };
+
       switch (step) {
         case 'weight':
-          return `Harika! ${collectedData.age} yaşındasınız. Şimdi mevcut kilonuzu öğrenebilir miyim? (kg cinsinden)`;
+          return `Harika! ${displayNumber(dataSnapshot.age)} yaşındasınız. Şimdi mevcut kilonuzu öğrenebilir miyim? (kg cinsinden)`;
         case 'height':
-          return `Tamam, ${collectedData.weight} kg. Peki boyunuz kaç cm?`;
+          return `Tamam, ${displayNumber(dataSnapshot.weight)} kg. Peki boyunuz kaç cm?`;
         case 'goal':
-          return `${collectedData.height} cm, anladım. Şimdi hedefinizi öğrenmek istiyorum. Kilo vermek mi, kilo almak mı, kas yapmak mı yoksa mevcut durumunuzu korumak mı istiyorsunuz?`;
+          return `${displayNumber(dataSnapshot.height)} cm, anladım. Şimdi hedefinizi öğrenmek istiyorum. Kilo vermek mi, kilo almak mı, kas yapmak mı yoksa mevcut durumunuzu korumak mı istiyorsunuz?`;
         case 'allergies':
           return 'Anlıyorum! Herhangi bir besin alerjiniz var mı? Varsa lütfen belirtin, yoksa "yok" yazabilirsiniz.';
         case 'injuries':
@@ -130,16 +185,16 @@ export const ChatScreen: React.FC = () => {
         case 'confirmation':
           return (
             `Topladığım bilgiler:\n\n` +
-            `📅 Yaş: ${collectedData.age}\n` +
-            `⚖️ Kilo: ${collectedData.weight} kg\n` +
-            `📏 Boy: ${collectedData.height} cm\n` +
-            `🎯 Hedef: ${collectedData.goal}\n` +
-            `🚫 Alerjiler: ${collectedData.allergies?.length ? collectedData.allergies.join(', ') : 'Yok'}\n` +
-            `⚠️ Sakatlıklar: ${collectedData.injuries?.length ? collectedData.injuries.join(', ') : 'Yok'}\n\n` +
+            `Yaş: ${displayNumber(dataSnapshot.age)}\n` +
+            `Kilo: ${displayNumber(dataSnapshot.weight)} kg\n` +
+            `Boy: ${displayNumber(dataSnapshot.height)} cm\n` +
+            `Hedef: ${dataSnapshot.goal ?? 'bilinmiyor'}\n` +
+            `Alerjiler: ${dataSnapshot.allergies?.length ? dataSnapshot.allergies.join(', ') : 'Yok'}\n` +
+            `Sakatlıklar: ${dataSnapshot.injuries?.length ? dataSnapshot.injuries.join(', ') : 'Yok'}\n\n` +
             `Bu bilgiler doğru mu? "Evet" derseniz kişisel planınızı oluşturmaya başlıyorum!`
           );
         case 'generating':
-          return 'Mükemmel! 🎉 Şimdi size özel diyet ve antrenman programınızı hazırlıyorum. Bu birkaç saniye sürebilir...';
+          return 'Mükemmel! Simdi size ozel diyet ve antrenman programinizi hazirliyorum. Bu birkac saniye surebilir...';
         default:
           return CHAT_QUESTIONS[step] || '';
       }
@@ -150,29 +205,39 @@ export const ChatScreen: React.FC = () => {
   // Mesaj gönderme
   const handleSend = useCallback(
     async (text: string) => {
+      const sanitizedUserText = stripEmojis(text);
+      if (!sanitizedUserText) {
+        return;
+      }
+
       // Kullanıcı mesajını ekle
-      addUserMessage(text);
+      addUserMessage(sanitizedUserText);
       setIsTyping(true);
 
       // Simüle edilmiş gecikme
       await new Promise((resolve) => setTimeout(resolve, 800));
 
       // Kullanıcı girişini işle
-      const { nextStep, errorMessage } = await processUserInput(text, currentStep);
+      const { nextStep, errorMessage, updates } = await processUserInput(sanitizedUserText, currentStep);
+
+      const latestCollectedData = {
+        ...useChatStore.getState().collectedData,
+        ...(updates || {}),
+      };
 
       if (errorMessage) {
-        addBotMessage(errorMessage);
+        addBotMessage(stripEmojis(errorMessage));
       } else {
         setCurrentStep(nextStep);
-        const response = getBotResponse(nextStep);
-        addBotMessage(response);
+        const response = getBotResponse(nextStep, latestCollectedData);
+        addBotMessage(stripEmojis(response));
 
         // Kullanıcı bilgileri onaylandıktan sonra plan oluştur
         if (nextStep === 'generating') {
           try {
             setIsGenerating(true);
 
-            const { age, weight, height, goal, allergies, injuries } = collectedData;
+            const { age, weight, height, goal, allergies, injuries } = latestCollectedData;
 
             if (!age || !weight || !height || !goal) {
               throw new Error('Plan oluşturmak için gerekli bilgiler eksik.');
@@ -195,9 +260,10 @@ export const ChatScreen: React.FC = () => {
             }
 
             setCurrentPlan(apiResponse.data);
+            await loadUserPlans();
 
             addBotMessage(
-              'Harika! 🎉 Sana özel diyet ve antrenman planını oluşturdum. "Planlarım" sekmesinden detayları görebilirsin.'
+              stripEmojis('Harika! Sana ozel diyet ve antrenman planini olusturdum. "Planlarim" sekmesinden detaylari gorebilirsin.')
             );
 
             setCurrentStep('complete');
@@ -205,7 +271,7 @@ export const ChatScreen: React.FC = () => {
             console.error('Plan generation error:', err);
             setError(err?.message || 'Plan oluşturulurken bir hata oluştu');
             addBotMessage(
-              'Üzgünüm, plan oluşturulurken bir hata oluştu. Lütfen daha sonra tekrar dene veya giriş yaptığından emin ol.'
+              stripEmojis('Uzgunum, plan olusturulurken bir hata olustu. Lutfen daha sonra tekrar dene veya giris yaptigindan emin ol.')
             );
           } finally {
             setIsGenerating(false);
@@ -227,6 +293,10 @@ export const ChatScreen: React.FC = () => {
       setCurrentPlan,
       setIsGenerating,
       setError,
+      loadUserPlans,
+      updateUserProfile,
+      user,
+      stripEmojis,
     ]
   );
 

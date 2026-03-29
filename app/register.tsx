@@ -65,7 +65,8 @@ export default function RegisterScreen() {
 
     try {
       setLoading(true);
-      const response = await userService.register({ email, password, name });
+      const normalizedEmail = email.trim().toLowerCase();
+      const response = await userService.register({ email: normalizedEmail, password, name: name.trim() });
 
       if (!response.success || !response.data) {
         throw new Error(response.error?.message || 'Kayıt başarısız');

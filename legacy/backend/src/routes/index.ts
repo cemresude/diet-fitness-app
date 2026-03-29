@@ -19,6 +19,7 @@ router.get('/health', (req, res) => {
 // API routes
 router.use('/chat', chatRoutes);
 router.use('/users', userRoutes);
+router.use('/plan', planRoutes);
 router.use('/plans', planRoutes);
 
 export default router;

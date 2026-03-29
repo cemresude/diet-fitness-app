@@ -48,7 +48,8 @@ export default function LoginScreen() {
 
     try {
       setLoading(true);
-      const response = await userService.login({ email, password });
+      const normalizedEmail = email.trim().toLowerCase();
+      const response = await userService.login({ email: normalizedEmail, password });
 
       if (!response.success || !response.data) {
         throw new Error(response.error?.message || 'Giriş başarısız');

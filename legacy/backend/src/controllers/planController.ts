@@ -7,7 +7,11 @@ export const planController = {
   // Plan oluştur
   generatePlan: async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
-      const userId = req.userId || 'anonymous';
+      const userId = req.userId;
+      if (!userId) {
+        throw createError('Kullanıcı bulunamadı', 401, 'UNAUTHORIZED');
+      }
+
       const { userProfile } = req.body;
 
       const plan = await planGenerator.generatePlan(userId, {
@@ -24,6 +28,11 @@ export const planController = {
         data: toPlanResponse(plan),
       });
     } catch (error) {
+      console.error('[PLAN_CONTROLLER][generatePlan] failed', {
+        userId: req.userId,
+        body: req.body,
+        error,
+      });
       next(error);
     }
   },

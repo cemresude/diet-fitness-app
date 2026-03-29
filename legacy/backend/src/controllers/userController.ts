@@ -11,11 +11,36 @@ export const userController = {
   // Kullanıcı kaydı
   register: async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { email, password, name } = req.body;
+      const { password, name } = req.body;
+      const rawEmail = String(req.body.email || '').trim();
+      const normalizedEmail = rawEmail.toLowerCase();
+
+      if (!normalizedEmail) {
+        throw createError('Geçerli bir e-posta adresi giriniz', 400, 'VALIDATION_ERROR');
+      }
 
       // E-posta kontrolü
-      const existingUser = await collections.users.where('email', '==', email).get();
-      if (!existingUser.empty) {
+      const existingByLower = await collections.users
+        .where('emailLower', '==', normalizedEmail)
+        .limit(1)
+        .get();
+
+      let existingByEmail = existingByLower;
+      if (existingByEmail.empty) {
+        existingByEmail = await collections.users
+          .where('email', '==', normalizedEmail)
+          .limit(1)
+          .get();
+      }
+
+      if (existingByEmail.empty && rawEmail !== normalizedEmail) {
+        existingByEmail = await collections.users
+          .where('email', '==', rawEmail)
+          .limit(1)
+          .get();
+      }
+
+      if (!existingByEmail.empty) {
         throw createError('Bu e-posta adresi zaten kullanılıyor', 400, 'EMAIL_EXISTS');
       }
 
@@ -25,7 +50,8 @@ export const userController = {
       // Kullanıcı oluştur
       const user: User = {
         id: uuidv4(),
-        email,
+        email: normalizedEmail,
+        emailLower: normalizedEmail,
         name,
         passwordHash,
         allergies: [],
@@ -59,10 +85,30 @@ export const userController = {
   // Kullanıcı girişi
   login: async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { email, password } = req.body;
+      const { password } = req.body;
+      const rawEmail = String(req.body.email || '').trim();
+      const normalizedEmail = rawEmail.toLowerCase();
 
       // Kullanıcıyı bul
-      const snapshot = await collections.users.where('email', '==', email).get();
+      let snapshot = await collections.users
+        .where('emailLower', '==', normalizedEmail)
+        .limit(1)
+        .get();
+
+      if (snapshot.empty) {
+        snapshot = await collections.users
+          .where('email', '==', normalizedEmail)
+          .limit(1)
+          .get();
+      }
+
+      if (snapshot.empty && rawEmail !== normalizedEmail) {
+        snapshot = await collections.users
+          .where('email', '==', rawEmail)
+          .limit(1)
+          .get();
+      }
+
       if (snapshot.empty) {
         throw createError('E-posta veya şifre hatalı', 401, 'INVALID_CREDENTIALS');
       }
@@ -75,9 +121,32 @@ export const userController = {
       } as User;
 
       // Şifre kontrolü
-      const isValidPassword = await bcrypt.compare(password, user.passwordHash);
+      let isValidPassword = false;
+      const passwordHash = (userData as any).passwordHash;
+      const legacyPassword = (userData as any).password;
+
+      if (typeof passwordHash === 'string' && passwordHash.length > 0) {
+        isValidPassword = await bcrypt.compare(password, passwordHash);
+      } else if (typeof legacyPassword === 'string' && legacyPassword.length > 0) {
+        // Legacy düz metin şifreli kayıtlarla geriye dönük uyumluluk
+        isValidPassword = password === legacyPassword;
+      }
+
       if (!isValidPassword) {
         throw createError('E-posta veya şifre hatalı', 401, 'INVALID_CREDENTIALS');
+      }
+
+      // Legacy kullanıcıyı başarılı girişte şifre hash + emailLower alanına taşı
+      if (!(typeof passwordHash === 'string' && passwordHash.length > 0)) {
+        const migratedHash = await bcrypt.hash(password, 10);
+        await collections.users.doc(user.id).update({
+          passwordHash: migratedHash,
+          email: normalizedEmail,
+          emailLower: normalizedEmail,
+          updatedAt: new Date(),
+        });
+        user.passwordHash = migratedHash;
+        user.email = normalizedEmail;
       }
 
       // Token oluştur

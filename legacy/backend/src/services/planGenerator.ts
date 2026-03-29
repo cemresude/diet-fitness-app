@@ -81,6 +81,10 @@ export const planGenerator = {
       // AI ile plan oluşturmayı dene
       const generatedPlan = await aiService.generatePlan(userProfile);
 
+      if (!generatedPlan?.dietPlan || !generatedPlan?.workoutPlan) {
+        throw new Error('Generated plan schema invalid (dietPlan/workoutPlan missing)');
+      }
+
       const plan: Plan = {
         id: uuidv4(),
         userId,
@@ -94,23 +98,14 @@ export const planGenerator = {
       await collections.plans.doc(plan.id).set(plan);
       return plan;
     } catch (error) {
-      console.error('Plan generation error, using fallback plan:', error);
-
-      // AI başarısız olursa fallback plana düş
-      const fallback = buildFallbackPlan(userProfile);
-
-      const plan: Plan = {
-        id: uuidv4(),
+      console.error('Plan generation failed before database save:', {
         userId,
-        dietPlan: fallback.dietPlan,
-        workoutPlan: fallback.workoutPlan,
         userProfile,
-        createdAt: new Date(),
-        validUntil: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-      };
+        error,
+      });
 
-      await collections.plans.doc(plan.id).set(plan);
-      return plan;
+      // Fallback otomatik kullanılmasın: hatayı controller'a ilet
+      throw error;
     }
   },
 

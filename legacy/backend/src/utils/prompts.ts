@@ -105,6 +105,28 @@ Dikkat edilecekler:
 5. Türk mutfağına uygun yemekler öner
 `;
 
+export const USER_DATA_EXTRACTION_PROMPT = (message: string) => `
+You are a strict data parser.
+Extract ONLY allergy and injury keywords from the user message.
+
+Rules:
+1) Return valid JSON only.
+2) Use lowercase english keyword tokens.
+3) No conversational text.
+4) If none found, return empty arrays.
+
+Output format:
+{
+  "allergies": ["egg", "peanut"],
+  "injuries": ["knee", "herniated_disc"]
+}
+
+User message:
+"""
+${message}
+"""
+`;
+
 export const CONVERSATION_PROMPTS = {
   greeting: `Merhaba! 👋 Ben senin kişisel fitness ve beslenme asistanınım. 
 Sana özel bir diyet ve antrenman programı oluşturmak için birkaç soru soracağım.

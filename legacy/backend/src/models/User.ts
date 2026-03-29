@@ -3,6 +3,7 @@
 export interface User {
   id: string;
   email: string;
+  emailLower?: string;
   name: string;
   passwordHash: string;
   age?: number;

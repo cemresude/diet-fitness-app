@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { UserProfile, UserGoal } from '../types/user';
 import * as SecureStore from 'expo-secure-store';
+import { userService } from '../services';
 
 interface UserState {
   user: UserProfile | null;
@@ -11,10 +12,10 @@ interface UserState {
   
   // Actions
   setUser: (user: UserProfile) => void;
-  setToken: (token: string) => void;
+  setToken: (token: string) => Promise<void>;
   updateProfile: (updates: Partial<UserProfile>) => void;
-  logout: () => void;
-  acceptDisclaimer: () => void;
+  logout: () => Promise<void>;
+  acceptDisclaimer: () => Promise<void>;
   loadStoredAuth: () => Promise<void>;
 }
 
@@ -31,7 +32,7 @@ export const useUserStore = create<UserState>((set, get) => ({
 
   setToken: async (token) => {
     await SecureStore.setItemAsync('auth_token', token);
-    set({ token });
+    set({ token, isAuthenticated: true });
   },
 
   updateProfile: (updates) => {
@@ -49,6 +50,8 @@ export const useUserStore = create<UserState>((set, get) => ({
 
   logout: async () => {
     await SecureStore.deleteItemAsync('auth_token');
+    await userService.clearProfile();
+
     set({
       user: null,
       token: null,
@@ -72,6 +75,13 @@ export const useUserStore = create<UserState>((set, get) => ({
         hasAcceptedDisclaimer: disclaimerAccepted === 'true',
         isLoading: false,
       });
+
+      if (token) {
+        const profileRes = await userService.getProfile();
+        if (profileRes.success && profileRes.data) {
+          set({ user: profileRes.data });
+        }
+      }
     } catch (error) {
       console.error('Error loading stored auth:', error);
       set({ isLoading: false });

@@ -5,9 +5,11 @@ import { authMiddleware, optionalAuthMiddleware, generatePlanValidation, planIdV
 const router = Router();
 
 // Plan oluştur
+router.post('/', authMiddleware, generatePlanValidation, planController.generatePlan);
 router.post('/generate', authMiddleware, generatePlanValidation, planController.generatePlan);
 
 // Plan geçmişi
+router.get('/', authMiddleware, planController.getPlanHistory);
 router.get('/history', authMiddleware, planController.getPlanHistory);
 
 // Plan getir

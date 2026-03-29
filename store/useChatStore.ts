@@ -90,7 +90,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     // Hoşgeldin mesajı
     setTimeout(() => {
       addBotMessage(
-        'Merhaba! 👋 Ben senin kişisel fitness ve beslenme asistanınım. ' +
+        'Merhaba! Ben senin kişisel fitness ve beslenme asistanınım. ' +
         'Sana özel bir diyet ve antrenman programı oluşturmak için birkaç soru soracağım.',
       );
       
