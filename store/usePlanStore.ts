@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { Plan, DietPlan, WorkoutPlan } from '../types/plan';
+import { planService } from '../services';
 
 interface PlanState {
   currentPlan: Plan | null;
@@ -15,6 +16,8 @@ interface PlanState {
   setGenerationProgress: (progress: number) => void;
   setError: (error: string | null) => void;
   clearCurrentPlan: () => void;
+  resetPlans: () => void;
+  loadUserPlans: () => Promise<void>;
 }
 
 export const usePlanStore = create<PlanState>((set, get) => ({
@@ -50,5 +53,24 @@ export const usePlanStore = create<PlanState>((set, get) => ({
 
   clearCurrentPlan: () => {
     set({ currentPlan: null });
+  },
+
+  resetPlans: () => {
+    set({ currentPlan: null, planHistory: [], isGenerating: false, generationProgress: 0, error: null });
+  },
+
+  loadUserPlans: async () => {
+    try {
+      const response = await planService.getPlanHistory();
+      if (response.success && response.data) {
+        const plans = response.data;
+        set({
+          planHistory: plans,
+          currentPlan: plans.length > 0 ? plans[0] : null,
+        });
+      }
+    } catch (error) {
+      console.error('Error loading user plans:', error);
+    }
   },
 }));

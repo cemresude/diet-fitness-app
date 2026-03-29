@@ -72,8 +72,7 @@ async function generateWithGemini(prompt: string): Promise<string> {
   if (!geminiClient) throw new Error('Gemini client not initialized');
 
   // Model adını ortam değişkeninden oku; yoksa yaygın desteklenen bir varsayılan kullan
-  // Not: @google/generative-ai için genelde 'gemini-1.0-pro' veya 'gemini-pro' modelleri kullanılır.
-  const geminiModel = process.env.GEMINI_MODEL || 'gemini-1.0-pro';
+  const geminiModel = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
   const model = geminiClient.getGenerativeModel({ model: geminiModel });
   const result = await model.generateContent(prompt);
   const response = await result.response;
@@ -85,7 +84,7 @@ async function generateWithOpenAI(prompt: string): Promise<string> {
   if (!openaiClient) throw new Error('OpenAI client not initialized');
 
   const completion = await openaiClient.chat.completions.create({
-    model: 'gpt-4-turbo-preview',
+    model: 'gpt-4o-mini',
     messages: [
       { role: 'system', content: SYSTEM_PROMPT },
       { role: 'user', content: prompt },
